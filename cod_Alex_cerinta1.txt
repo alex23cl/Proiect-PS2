@@ -1,0 +1,114 @@
+---------------Arduino---------------
+// Include librariile necesare
+#include <Arduino.h>
+
+// Definirea pinilor pentru senzorul LM35 și LED
+const int lm35Pin = A1;
+const int ledPin = 8;
+
+// Variabile pentru stocarea valorii temperaturii și a comenzilor primite
+float temperature = 0.0;
+char command;
+
+void setup() {
+  // Inițializarea portului serial la 9600 baud
+  Serial.begin(9600);
+
+  // Setarea pinului LED ca ieșire
+  pinMode(ledPin, OUTPUT);
+}
+
+void loop() {
+  // Citirea valorii temperaturii de la senzorul LM35
+
+  // Afisarea temperaturii pe portul serial
+  //Serial.print("Temperatura curenta: ");
+  //Serial.print(temperature);
+  //Serial.println(" °C");
+  command = 'W';
+
+  // Verificarea dacă au fost primite date pe portul serial
+  if (Serial.available() > 0) {
+    // Citirea comenzii
+    command = Serial.read();
+  }
+
+  // Verificarea comenzii și controlul LED-ului în funcție de aceasta
+  if (command == 'A') {
+    digitalWrite(ledPin, HIGH); // Aprindere LED
+    // Serial.println("LED-ul a fost aprins.");
+  } else if (command == 'S') {
+    digitalWrite(ledPin, LOW); // Stingere LED
+    // Serial.println("LED-ul a fost stins.");
+  } else if (command == 'W') {
+    int sensorValue = analogRead(lm35Pin);
+    temperature = (sensorValue * 5.0 * 100.0) / 1024.0; // Conversie la temperatură în grade Celsius
+    Serial.println(temperature);
+  }
+
+  // Așteptare pentru a evita citirea repetată a comenzilor
+  delay(100);
+}
+
+
+
+
+---------------Python---------------
+from flask import Flask, render_template, request, redirect, url_for, session
+import serial
+import time
+
+app = Flask(__name__)
+app.secret_key = 'BAD_SECRET_KEY'
+
+
+
+@app.route('/')
+def index():
+    # Citirea stării LED-ului și temperaturii de la Arduino
+    temperature = ''
+    temperature = arduino.readline().decode().strip()
+    led_state = session.get('led_state', None)
+    return render_template('index.html', led_state=led_state, temperature=temperature)
+
+
+
+@app.route('/control', methods=['POST'])
+def control():
+    # Controlul LED-ului în funcție de comanda primită
+    command = request.form['command']
+    if command == 'ON':
+        arduino.write(b'A')  # Trimite comanda pentru a aprinde LED-ul
+        session['led_state'] = 'Aprins'
+    elif command == 'OFF':
+        arduino.write(b'S')  # Trimite comanda pentru a stinge LED-ul
+        session['led_state'] = 'Stins'
+    return redirect(url_for('index'))
+
+
+
+if __name__ == '__main__':
+    arduino = serial.Serial('COM3', 9600)
+    # Inițializarea portului serial
+    time.sleep(2)  # Așteaptă stabilirea conexiunii
+    app.run()
+
+---------------HTML---------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Control</title>
+</head>
+<body>
+    <h1>LED Control</h1>
+    <p>Stare LED: {{ led_state }}</p>
+    <p>Temperatura curentă: {{ temperature }} °C</p>
+
+    <form action="/control" method="post">
+        <button type="submit" name="command" value="ON">Aprinde LED</button>
+        <button type="submit" name="command" value="OFF">Stinge LED</button>
+    </form>
+</body>
+</html>

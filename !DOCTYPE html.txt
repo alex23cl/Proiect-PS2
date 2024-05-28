@@ -1,0 +1,83 @@
+!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Monitor & LED Control</title>
+    <style>
+        .section {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .led-control {
+            margin-top: 20px;
+        }
+        .led-status {
+            font-size: 18px;
+        }
+        .status_on {
+            background-color: green;
+        }
+        .status_off{
+            background-color: red;
+
+
+        }
+    </style>
+</head>
+<body>
+    <div class="section">
+        <h1>Temperature Monitor</h1>
+        <div id="temperature"></div>
+    </div>
+
+    <div class="section led-control">
+        <h1>Control LED</h1>
+         <p>Stare LED: <span id="led-state">...</span></p>
+        <button onclick="sendCommand('A')">Aprinde LED</button>
+        <button onclick="sendCommand('S')">Stinge LED</button>
+    </div>
+
+    <script>
+        function updateTemperature() {
+            fetch('/get_temperature')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('temperature').innerText = data;
+                });
+        }
+
+        function updateLedState() {
+            fetch('/get_led_state')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('led-state').innerText = data;
+                });
+        }
+
+        function sendCommand(command) {
+            fetch('/led_control/' + command)
+                .then(response => {
+                    if (response.ok) {
+                        console.log('Comandă trimisă cu succes');
+                    } else {
+                        console.error('Eroare la trimiterea comenzii');
+                    }
+                })
+                .catch(error => {
+                    console.error('Eroare de rețea:', error);
+                });
+        }
+
+        // Update temperature every 5 seconds
+        setInterval(updateTemperature, 5000);
+
+        // Update LED state every 1 second
+       setInterval(updateLedState, 1000);
+
+        // Initial updates
+        updateTemperature();
+       updateLedState();
+    </script>
+</body>
+</html>
